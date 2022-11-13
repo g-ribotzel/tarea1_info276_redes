@@ -195,8 +195,6 @@ class NTPPacket:
         try:
             unpacked = struct.unpack(NTPPacket._PACKET_FORMAT,
                     data[0:struct.calcsize(NTPPacket._PACKET_FORMAT)])
-            for x in range(0,len(unpacked)):
-                print(x, unpacked[x])
         except struct.error:
             raise NTPException("Invalid NTP packet.")
 

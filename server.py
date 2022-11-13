@@ -30,6 +30,7 @@ def envio_th(sock, caja):
             data, address, recvTime = caja.pop(0)
             recvNTP = NTPPacket()
             recvNTP.from_data(data)
+            timeStamp_high,timeStamp_low = recvNTP.GetTxTimeStamp()
 
             if(recvNTP.mode == 3):
                 sendNTP = NTPPacket(mode=4)
@@ -37,9 +38,10 @@ def envio_th(sock, caja):
                 sendNTP = NTPPacket(mode=2)
             
             sendNTP.stratum = 2
-            sendNTP.poll = recvNTP.poll
+            sendNTP.poll = recvNTP.poll        
+            sendNTP.SetOriginTimeStamp(timeStamp_high,timeStamp_low)
             sendNTP.tx_timestamp = sendNTP.ref_timestamp = sendNTP.recv_timestamp = system_to_ntp_time(recvTime)
-            sendNTP.orig_timestamp = recvNTP.orig_timestamp
+            #sendNTP.orig_timestamp = recvNTP.orig_timestamp #no tiene sentido si es 0 no?
 
             sock.sendto(sendNTP.to_data(), address)
 
