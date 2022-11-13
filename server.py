@@ -5,8 +5,8 @@ from ntp import *
 
 finalizar_g = False
 box = list()
-localIP     = "127.0.0.1"
-localPort   = 20001
+localIP     = "172.25.40.131"
+localPort   = 6000
 
 def recepcion_th(sock, caja):
     global finalizar_g
@@ -15,7 +15,7 @@ def recepcion_th(sock, caja):
         try:
             data, address = sock.recvfrom(1024)
             hora_recepcion = time.time()
-            print("RECEPCION > {0} \nTiempo: {1}".format(recv_msg, hora_recepcion))
+            print("RECEPCION > {0} \nTiempo: {1}".format((data,address), hora_recepcion))
             caja.append((data, address, hora_recepcion))
         except socket.timeout:
             continue
@@ -36,7 +36,7 @@ def envio_th(sock, caja):
                 sendNTP = NTPPacket(mode=2)
             
             sendNTP.stratum = 2
-            sednNTP.poll = recvNTP.poll
+            sendNTP.poll = recvNTP.poll
             sendNTP.tx_timestamp = sendNTP.ref_timestamp = sendNTP.recv_timestamp = system_to_ntp_time(recvTime)
             sendNTP.orig_timestamp = recvNTP.orig_timestamp
 
