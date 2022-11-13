@@ -1,6 +1,7 @@
 import threading
 import socket
 import time
+import inspect
 from ntp import *
 
 finalizar_g = False
@@ -41,6 +42,15 @@ def envio_th(sock, caja):
             sendNTP.orig_timestamp = recvNTP.orig_timestamp
 
             sock.sendto(sendNTP.to_data(), address)
+
+            #Inspeccion de clase
+            attributes = inspect.getmembers(sendNTP, lambda a:not(inspect.isroutine(a)))
+            msg = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
+            for x in msg:
+                if(x[0]=='root_delay' or x[0]=='root_dispersion'):
+                    print(x[0], x[1]*(2**16))
+                else:
+                    print(x)
         else:
             continue
     print("Terminando thread de envios")

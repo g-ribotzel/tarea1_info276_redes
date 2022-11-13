@@ -2,7 +2,7 @@ import socket
 import inspect
 from ntp import *
 
-serverAddressPort   = ("pool.ntp.org", 123)
+serverAddressPort   = ("172.25.40.131", 6000)
 bufferSize          = 1024
 
 # Create a UDP socket at client side
