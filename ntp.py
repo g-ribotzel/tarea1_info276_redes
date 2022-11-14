@@ -2,7 +2,7 @@ import struct
 import datetime
 import time
 
-def system_to_ntp_time(timestamp):
+def sysToNTP(timestamp):
     """Convert a system time to a NTP time.
 
     Parameters:
@@ -13,7 +13,7 @@ def system_to_ntp_time(timestamp):
     """
     return timestamp + NTP.NTP_DELTA
 
-def _to_int(timestamp):
+def toInt(timestamp):
     """Return the integral part of a timestamp.
 
     Parameters:
@@ -24,7 +24,7 @@ def _to_int(timestamp):
     """
     return int(timestamp)
 
-def _to_frac(timestamp, n=32):
+def toFrac(timestamp, n=32):
     """Return the fractional part of a timestamp.
 
     Parameters:
@@ -34,9 +34,9 @@ def _to_frac(timestamp, n=32):
     Retuns:
     fractional part
     """
-    return int(abs(timestamp - _to_int(timestamp)) * 2**n)
+    return int(abs(timestamp - toInt(timestamp)) * 2**n)
 
-def _to_time(integ, frac, n=32):
+def toTime(integ, frac, n=32):
     """Return a timestamp from an integral and fractional part.
 
     Parameters:
@@ -165,19 +165,19 @@ class NTPPacket:
                 self.stratum,
                 self.poll,
                 self.precision,
-                _to_int(self.root_delay) << 16 | _to_frac(self.root_delay, 16),
-                _to_int(self.root_dispersion) << 16 |
-                _to_frac(self.root_dispersion, 16),
+                toInt(self.root_delay) << 16 | toFrac(self.root_delay, 16),
+                toInt(self.root_dispersion) << 16 |
+                toFrac(self.root_dispersion, 16),
                 self.ref_id,
-                _to_int(self.ref_timestamp),
-                _to_frac(self.ref_timestamp),
+                toInt(self.ref_timestamp),
+                toFrac(self.ref_timestamp),
                 #Change by lichen, avoid loss of precision
                 self.orig_timestamp_high,
                 self.orig_timestamp_low,
-                _to_int(self.recv_timestamp),
-                _to_frac(self.recv_timestamp),
-                _to_int(self.tx_timestamp),
-                _to_frac(self.tx_timestamp))
+                toInt(self.recv_timestamp),
+                toFrac(self.recv_timestamp),
+                toInt(self.tx_timestamp),
+                toFrac(self.tx_timestamp))
         except struct.error:
             raise NTPException("Invalid NTP packet fields.")
         return packed
@@ -207,12 +207,12 @@ class NTPPacket:
         self.root_delay = float(unpacked[4])/2**16
         self.root_dispersion = float(unpacked[5])/2**16
         self.ref_id = unpacked[6]
-        self.ref_timestamp = _to_time(unpacked[7], unpacked[8])
-        self.orig_timestamp = _to_time(unpacked[9], unpacked[10])
+        self.ref_timestamp = toTime(unpacked[7], unpacked[8])
+        self.orig_timestamp = toTime(unpacked[9], unpacked[10])
         self.orig_timestamp_high = unpacked[9]
         self.orig_timestamp_low = unpacked[10]
-        self.recv_timestamp = _to_time(unpacked[11], unpacked[12])
-        self.tx_timestamp = _to_time(unpacked[13], unpacked[14])
+        self.recv_timestamp = toTime(unpacked[11], unpacked[12])
+        self.tx_timestamp = toTime(unpacked[13], unpacked[14])
         self.tx_timestamp_high = unpacked[13]
         self.tx_timestamp_low = unpacked[14]
 
