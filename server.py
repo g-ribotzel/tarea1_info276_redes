@@ -38,10 +38,14 @@ def envio_th(sock, caja):
                 sendNTP = NTPPacket(mode=2)
             
             sendNTP.stratum = 2
-            sendNTP.poll = recvNTP.poll        
+            sendNTP.poll = recvNTP.poll 
+            
+            sendNTP.orig_timestamp = _to_time(timeStamp_high,timeStamp_low)       
             sendNTP.SetOriginTimeStamp(timeStamp_high,timeStamp_low)
+
             sendNTP.tx_timestamp = sendNTP.ref_timestamp = sendNTP.recv_timestamp = system_to_ntp_time(recvTime)
-            #sendNTP.orig_timestamp = recvNTP.orig_timestamp #no tiene sentido si es 0 no?
+            sendNTP.tx_timestamp_high = _to_int(sendNTP.tx_timestamp)
+            sendNTP.tx_timestamp_low = _to_frac(sendNTP.tx_timestamp)
 
             sock.sendto(sendNTP.to_data(), address)
 
