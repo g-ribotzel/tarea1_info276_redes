@@ -11,12 +11,12 @@ localPort   = 6000
 
 def recepcion_th(sock, caja):
     global finalizar_g
-    print("Thread de recepcion inicializado")
+    print("Thread de recepcion inicializado\n")
     while(not finalizar_g):
         try:
             data, address = sock.recvfrom(1024)
             hora_recepcion = time.time()
-            print("RECEPCION > {0} \nTiempo: {1}".format((data,address), hora_recepcion))
+            print("RECEPCION DESDE > {}".format(address))
             caja.append((data, address, hora_recepcion))
         except socket.timeout:
             continue
@@ -24,7 +24,7 @@ def recepcion_th(sock, caja):
 
 def envio_th(sock, caja):
     global finalizar_g
-    print("Thread de envios inicializado")
+    print("Thread de envios inicializado\n")
     while(not finalizar_g):
         if(len(caja) > 0):
             data, address, recvTime = caja.pop(0)
@@ -52,11 +52,7 @@ def envio_th(sock, caja):
             #Inspeccion de clase
             attributes = inspect.getmembers(sendNTP, lambda a:not(inspect.isroutine(a)))
             msg = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
-            for x in msg:
-                if(x[0]=='root_delay' or x[0]=='root_dispersion'):
-                    print(x[0], x[1]*(2**16))
-                else:
-                    print(x)
+            print(*msg, sep="\n")
         else:
             continue
     print("Terminando thread de envios")
@@ -67,7 +63,7 @@ UDPServerSocket.settimeout(5)
 
 # Bind to address and ip
 UDPServerSocket.bind((localIP, localPort))
-print("Servidor UDP levantado y escuchando")
+print("Servidor UDP levantado y escuchando.\nIP: {0}\nPuerto: {1}".format(localIP,localPort))
 
 recepcion = threading.Thread(target=recepcion_th, args=(UDPServerSocket, box,))
 recepcion.start()
