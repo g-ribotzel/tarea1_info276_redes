@@ -1,15 +1,25 @@
 import socket
+import inspect
+import sys
+from ntp_2 import *
 import time
-from ntp import *
 
-print(NTP.NTP_DELTA)
+if(len(sys.argv) not in (1,3)):
+    print("Faltan o hay más argumentos de los aceptados\nPara Ejecutar:\npython {0} <IP> <PUERTO>\npython {0}".format(sys.argv[0]))
+    sys.exit(2)
 
-#Cliente automatico para prueba de estres.
+def inspeccion(clase):
+    #Inspeccion de clase
+    attributes = inspect.getmembers(clase, lambda a:not(inspect.isroutine(a)))
+    msg = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
+    print(*msg, sep="\n")
 
-msgFromClient       = "Hello UDP Server from automated machine!"
-bytesToSend         = str.encode(msgFromClient)
-serverAddressPort   = ("127.0.0.1", 20001)
-bufferSize          = 1024
+if(len(sys.argv) == 3):
+    serverAddressPort = (sys.argv[1], int(sys.argv[2]))
+else:
+    serverAddressPort = ("172.25.72.20", 123)
+
+bufferSize = 1024
 
 # Create a UDP socket at client side
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -17,8 +27,16 @@ UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 # Send to server using created UDP socket
 
 while(True):
-    UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+    sendNTP = paqueteNTP()
+    #inspeccion(sendNTP) #Inspeccion de los contenidos de la clase / paquete enviado
+    UDPClientSocket.sendto(sendNTP.codificar(), serverAddressPort)
+
     msgFromServer = UDPClientSocket.recvfrom(bufferSize)
-    msg = "Message from Server {}".format(msgFromServer[0])
-    print(msg)
+
+    recvNTP = paqueteNTP()
+    recvNTP.decodificar(msgFromServer[0])
+    #inspeccion(recvNTP) #Inspeccion de los contenidos de la clase / paquete recibido
+    timeNTP = toTime(recvNTP.tx_int,recvNTP.tx_frac) - NTP_DELTA
+
+    print(time.ctime(timeNTP).replace("  ", " "))
     time.sleep(2.5)

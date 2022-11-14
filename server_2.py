@@ -6,7 +6,7 @@ import sys
 from ntp_2 import *
 
 if(len(sys.argv) not in (1,3)):
-    print("Faltan o hay más argumentos de los aceptados\nPara Ejecutar:\npython server_2.py IP puerto\npython server_2.py")
+    print("Faltan o hay más argumentos de los aceptados\nPara Ejecutar:\npython {0} <IP> <PUERTO>\npython {0}".format(sys.argv[0]))
     sys.exit(2)
 
 print("argumentos recibidos :",sys.argv)
@@ -41,13 +41,13 @@ def envio_th(sock, caja):
             data, address, recvTime = caja.pop(0)
             recvNTP = paqueteNTP()
             recvNTP.decodificar(data)
-            timestamp_int,timestamp_frac = (recvNTP.tx_int, recvNTP.tx_frac)
 
             if(recvNTP.mode == 3):
                 sendNTP = paqueteNTP(mode=4)
             else:
                 sendNTP = paqueteNTP(mode=2)
             
+            timestamp_int,timestamp_frac = (recvNTP.tx_int, recvNTP.tx_frac)
             sendNTP.stratum = 2
             sendNTP.poll = recvNTP.poll 
             
@@ -64,11 +64,6 @@ def envio_th(sock, caja):
 
             print(">> Enviado a > {}".format(address))
             sock.sendto(sendNTP.codificar(), address)
-
-            #Inspeccion de clase
-            #attributes = inspect.getmembers(sendNTP, lambda a:not(inspect.isroutine(a)))
-            #msg = [a for a in attributes if not(a[0].startswith('__') and a[0].endswith('__'))]
-            #print(*msg, sep="\n")
         else:
             continue
     print("Terminando thread de envios")
@@ -90,13 +85,13 @@ while(True):
     try:
         time.sleep(0.5)
     except KeyboardInterrupt:
-        print("Exiting...")
+        print("Cerrando threads")
 
         finalizar_g = True
         recepcion.join()
         envio.join()
 
         UDPServerSocket.close()
-        print("Exited")
+        print("Adios :(")
         break
 

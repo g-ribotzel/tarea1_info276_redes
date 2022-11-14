@@ -1,7 +1,7 @@
 import struct
 import datetime
 
-#Recreacion de codigo NTP extraido de Github
+#Codigo basado en https://github.com/limifly/ntpserver
 
 SYSTEM_EPOCH = datetime.date(1970, 1, 1)
 """system epoch"""
