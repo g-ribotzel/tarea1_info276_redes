@@ -166,18 +166,17 @@ class NTPPacket:
                 self.poll,
                 self.precision,
                 toInt(self.root_delay) << 16 | toFrac(self.root_delay, 16),
-                toInt(self.root_dispersion) << 16 |
-                toFrac(self.root_dispersion, 16),
+                toInt(self.root_dispersion) << 16 | toFrac(self.root_dispersion, 16),
                 self.ref_id,
-                toInt(self.ref_timestamp),
-                toFrac(self.ref_timestamp),
+                toInt(self.ref_timestamp), #Parte entera de referencia
+                toFrac(self.ref_timestamp), #Parte fraccionaria
                 #Change by lichen, avoid loss of precision
-                self.orig_timestamp_high,
-                self.orig_timestamp_low,
-                toInt(self.recv_timestamp),
-                toFrac(self.recv_timestamp),
-                toInt(self.tx_timestamp),
-                toFrac(self.tx_timestamp))
+                self.orig_timestamp_high, #Parte entera de origen
+                self.orig_timestamp_low, #Parte fraccionaria
+                toInt(self.recv_timestamp), #Parte entera de recepcion
+                toFrac(self.recv_timestamp), #Parte fraccionaria
+                toInt(self.tx_timestamp), #Parte entera de transmision
+                toFrac(self.tx_timestamp)) #Parte fraccionaria
         except struct.error:
             raise NTPException("Invalid NTP packet fields.")
         return packed
