@@ -5,7 +5,7 @@ from ntp_2 import *
 import time
 
 if(len(sys.argv) not in (1,3)):
-    print("Faltan o hay más argumentos de los aceptados\nPara Ejecutar:\npython {0} <IP> <PUERTO>\npython {0}".format(sys.argv[0]))
+    print("Faltan o hay más argumentos de los aceptados\nPara Ejecutar escriba uno de los siguientes comandos:\npython3 {0} <IP> <PUERTO>\npython3 {0}\npython {0} <IP> <PUERTO>\npython {0}\n".format(sys.argv[0]))
     sys.exit(2)
 
 def inspeccion(clase):
