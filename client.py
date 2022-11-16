@@ -1,7 +1,7 @@
 import socket
 import inspect
 import sys
-from ntp_2 import *
+from ntp import *
 import time
 
 if(len(sys.argv) not in (1,3)):
@@ -17,7 +17,7 @@ def inspeccion(clase):
 if(len(sys.argv) == 3):
     serverAddressPort = (sys.argv[1], int(sys.argv[2]))
 else:
-    serverAddressPort = ("172.25.72.20", 123)
+    serverAddressPort = ("0.0.0.0", 123)
 
 bufferSize = 1024
 

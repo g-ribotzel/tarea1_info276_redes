@@ -1,199 +1,95 @@
 import struct
 import datetime
-import time
+
+#Codigo basado en https://github.com/limifly/ntpserver
+
+SYSTEM_EPOCH = datetime.date(1970, 1, 1)
+"""system epoch"""
+NTP_EPOCH = datetime.date(1900, 1, 1)
+"""NTP epoch"""
+NTP_DELTA = (SYSTEM_EPOCH - NTP_EPOCH).days * 24 * 3600
+"""delta between system and NTP time"""
 
 def sysToNTP(timestamp):
-    """Convert a system time to a NTP time.
-
-    Parameters:
-    timestamp -- timestamp in system time
-
-    Returns:
-    corresponding NTP time
-    """
-    return timestamp + NTP.NTP_DELTA
+    """time corresponding NTP time from a timestamp in system time"""
+    return timestamp + NTP_DELTA
 
 def toInt(timestamp):
-    """Return the integral part of a timestamp.
-
-    Parameters:
-    timestamp -- NTP timestamp
-
-    Retuns:
-    integral part
-    """
+    """Return the integral part of an NTP timestamp"""
     return int(timestamp)
 
 def toFrac(timestamp, n=32):
-    """Return the fractional part of a timestamp.
-
-    Parameters:
-    timestamp -- NTP timestamp
-    n         -- number of bits of the fractional part
-
-    Retuns:
-    fractional part
-    """
+    """Return a n-bits fractional part of an NTP timestamp. n is set by default to 32"""
     return int(abs(timestamp - toInt(timestamp)) * 2**n)
 
 def toTime(integ, frac, n=32):
-    """Return a timestamp from an integral and fractional part.
-
-    Parameters:
-    integ -- integral part
-    frac  -- fractional part
-    n     -- number of bits of the fractional part
-
-    Retuns:
-    timestamp
-    """
+    """Return a timestamp from an integral and fractional part. fractional part is restricted to n-bits. 
+    n is set to 32 by default"""
     return integ + float(frac)/2**n	
-
-
-class NTP:
-    """Helper class defining constants."""
-
-    _SYSTEM_EPOCH = datetime.date(*time.gmtime(0)[0:3])
-    """system epoch"""
-    _NTP_EPOCH = datetime.date(1900, 1, 1)
-    """NTP epoch"""
-    NTP_DELTA = (_SYSTEM_EPOCH - _NTP_EPOCH).days * 24 * 3600
-    """delta between system and NTP time"""
-
-    REF_ID_TABLE = {
-            'DNC': "DNC routing protocol",
-            'NIST': "NIST public modem",
-            'TSP': "TSP time protocol",
-            'DTS': "Digital Time Service",
-            'ATOM': "Atomic clock (calibrated)",
-            'VLF': "VLF radio (OMEGA, etc)",
-            'callsign': "Generic radio",
-            'LORC': "LORAN-C radionavidation",
-            'GOES': "GOES UHF environment satellite",
-            'GPS': "GPS UHF satellite positioning",
-    }
-    """reference identifier table"""
-
-    STRATUM_TABLE = {
-        0: "unspecified",
-        1: "primary reference",
-    }
-    """stratum table"""
-
-    MODE_TABLE = {
-        0: "unspecified",
-        1: "symmetric active",
-        2: "symmetric passive",
-        3: "client",
-        4: "server",
-        5: "broadcast",
-        6: "reserved for NTP control messages",
-        7: "reserved for private use",
-    }
-    """mode table"""
-
-    LEAP_TABLE = {
-        0: "no warning",
-        1: "last minute has 61 seconds",
-        2: "last minute has 59 seconds",
-        3: "alarm condition (clock not synchronized)",
-    }
-    """leap indicator table"""
 
 class NTPException(Exception):
     """Exception raised by this module."""
     pass
 
-class NTPPacket:
-    """NTP packet class as of RFC-1361.
-    This represents an NTP packet.
-    """
-    
+class paqueteNTP:
     _PACKET_FORMAT = "!B B B b 11I"
     """packet format to pack/unpack"""
 
     def __init__(self, version=2, mode=3, tx_timestamp=0):
-        """Constructor.
-        Parameters:
-        version      -- NTP version
-        mode         -- packet mode (client, server)
-        tx_timestamp -- packet transmit timestamp
-        """
         self.leap = 0
-        """leap second indicator"""
         self.version = version
-        """version"""
         self.mode = mode
-        """mode"""
         self.stratum = 0
-        """stratum"""
         self.poll = 0
-        """poll interval"""
         self.precision = 0
-        """precision"""
         self.root_delay = 0
-        """root delay"""
         self.root_dispersion = 0
-        """root dispersion"""
         self.ref_id = 0
-        """reference clock identifier"""
+
         self.ref_timestamp = 0
+        self.ref_int = 0
+        self.ref_frac = 0
         """reference timestamp"""
         self.orig_timestamp = 0
-        self.orig_timestamp_high = 0
-        self.orig_timestamp_low = 0
+        self.orig_int = 0
+        self.orig_frac = 0
         """originate timestamp"""
         self.recv_timestamp = 0
+        self.recv_int = 0
+        self.recv_frac = 0
         """receive timestamp"""
         self.tx_timestamp = tx_timestamp
-        self.tx_timestamp_high = 0
-        self.tx_timestamp_low = 0
+        self.tx_int = toInt(tx_timestamp)
+        self.tx_frac = toFrac(tx_timestamp)
         """tansmit timestamp"""
-        
-    def to_data(self):
-        """Convert this NTPPacket to a buffer that can be sent over a socket.
 
-        Returns:
-        buffer representing this packet
-
-        Raises:
-        NTPException -- in case of invalid field
-        """
+    def codificar(self):
         try:
-            packed = struct.pack(NTPPacket._PACKET_FORMAT,
-                (self.leap << 6 | self.version << 3 | self.mode),
-                self.stratum,
-                self.poll,
-                self.precision,
-                toInt(self.root_delay) << 16 | toFrac(self.root_delay, 16),
-                toInt(self.root_dispersion) << 16 | toFrac(self.root_dispersion, 16),
-                self.ref_id,
-                toInt(self.ref_timestamp), #Parte entera de referencia
-                toFrac(self.ref_timestamp), #Parte fraccionaria
-                #Change by lichen, avoid loss of precision
-                self.orig_timestamp_high, #Parte entera de origen
-                self.orig_timestamp_low, #Parte fraccionaria
-                toInt(self.recv_timestamp), #Parte entera de recepcion
-                toFrac(self.recv_timestamp), #Parte fraccionaria
-                toInt(self.tx_timestamp), #Parte entera de transmision
-                toFrac(self.tx_timestamp)) #Parte fraccionaria
+            packed = struct.pack(paqueteNTP._PACKET_FORMAT,
+                (self.leap << 6 | self.version << 3 | self.mode), #0
+                self.stratum, #1
+                self.poll, #2
+                self.precision, #3
+                toInt(self.root_delay) << 16 | toFrac(self.root_delay, 16), #4
+                toInt(self.root_dispersion) << 16 | toFrac(self.root_dispersion, 16), #5 
+                self.ref_id, #6 I
+                self.ref_int, #7 Parte entera de referencia
+                self.ref_frac, #8 Parte fraccionaria de referencia
+                self.orig_int, #9 Parte entera de origen
+                self.orig_frac, #10 Parte fraccionaria de origen
+                self.recv_int, #11 Parte entera de recepcion
+                self.recv_frac, #12 Parte fraccionaria de recepcion
+                self.tx_int, #13 Parte entera de transmision
+                self.tx_frac  #14 Parte fraccionaria de transmision
+                )
         except struct.error:
             raise NTPException("Invalid NTP packet fields.")
         return packed
 
-    def from_data(self, data):
-        """Populate this instance from a NTP packet payload received from
-        the network.
-
-        Parameters:
-        data -- buffer payload
-
-        Raises:
-        NTPException -- in case of invalid packet format
-        """
+    def decodificar(self, data):
         try:
-            unpacked = struct.unpack(NTPPacket._PACKET_FORMAT,
-                    data[0:struct.calcsize(NTPPacket._PACKET_FORMAT)])
+            unpacked = struct.unpack(paqueteNTP._PACKET_FORMAT,
+                    data[0:struct.calcsize(paqueteNTP._PACKET_FORMAT)])
         except struct.error:
             raise NTPException("Invalid NTP packet.")
 
@@ -206,19 +102,21 @@ class NTPPacket:
         self.root_delay = float(unpacked[4])/2**16
         self.root_dispersion = float(unpacked[5])/2**16
         self.ref_id = unpacked[6]
-        self.ref_timestamp = toTime(unpacked[7], unpacked[8])
-        self.orig_timestamp = toTime(unpacked[9], unpacked[10])
-        self.orig_timestamp_high = unpacked[9]
-        self.orig_timestamp_low = unpacked[10]
-        self.recv_timestamp = toTime(unpacked[11], unpacked[12])
-        self.tx_timestamp = toTime(unpacked[13], unpacked[14])
-        self.tx_timestamp_high = unpacked[13]
-        self.tx_timestamp_low = unpacked[14]
 
-    def GetTxTimeStamp(self):
-        return (self.tx_timestamp_high,self.tx_timestamp_low)
+        #self.ref_timestamp = toTime(unpacked[7], unpacked[8])
+        self.ref_int = unpacked[7]
+        self.ref_frac = unpacked[8]
 
-    def SetOriginTimeStamp(self,high,low):
-        self.orig_timestamp_high = high
-        self.orig_timestamp_low = low
+        #self.orig_timestamp = toTime(unpacked[9], unpacked[10])
+        self.orig_int = unpacked[9]
+        self.orig_frac = unpacked[10]
+
+        #self.recv_timestamp = toTime(unpacked[11], unpacked[12])
+        self.recv_int = unpacked[11]
+        self.recv_frac = unpacked[12]
+        
+        #self.tx_timestamp = toTime(unpacked[13], unpacked[14])
+        self.tx_int = unpacked[13]
+        self.tx_frac = unpacked[14]
+
         
