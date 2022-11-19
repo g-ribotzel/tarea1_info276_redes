@@ -15,31 +15,37 @@ if(len(sys.argv) == 3):
     localIP     = sys.argv[1]
     localPort   = int(sys.argv[2])
 else:
-    localIP     = "0.0.0.0"
+    localIP     = "localhost"
     localPort   = 123
 
-def recepcion_th(sock, caja):
+def recepcion_th(sock, lock, caja, id):
     global finalizar_g
-    print("Thread de recepcion inicializado\n")
+    print("Thread de recepcion {} inicializado\n".format(id))
     while(not finalizar_g):
         try:
             data, address = sock.recvfrom(1024)
             hora_recepcion = time.time()
-            print(">> Recibido desde > {}".format(address))
-            caja.append((data, address, hora_recepcion))
+            print(">> RecID {0} Recibido desde {1}".format(id,address))
+            with lock:
+                caja.append((data, address, hora_recepcion))
         except socket.timeout:
             continue
-    print("Terminando thread de recepcion")
+    print("Terminando thread de recepcion {}".format(id))
 
-def envio_th(sock, caja):
+def envio_th(sock, lock, caja, id):
     global finalizar_g
-    print("Thread de envios inicializado\n")
+    print("Thread de envios {} inicializado\n".format(id))
     while(not finalizar_g):
         if(len(caja) > 0):
-            data, address, recvTime = caja.pop(0)
+            ##########Podria mover esto a recepcion
+            #Actualmente estoy recibiendo cualquier tipo de mensaje.
+            #Al momento de usar los metodos de la clase paqueteNTP, esto puede levantarme una excepcion(error)
+            #Si lo muevo a recepcion: Si me levanta excepcion, podria ignorar el mensaje completamente y continuar con la ejecucion.
+            with lock:
+                data, address, recvTime = caja.pop(0)
             recvNTP = paqueteNTP()
             recvNTP.decodificar(data)
-
+            ##############################
             if(recvNTP.mode == 3):
                 sendNTP = paqueteNTP(mode=4)
             else:
@@ -60,11 +66,11 @@ def envio_th(sock, caja):
             sendNTP.tx_int = sendNTP.ref_int = sendNTP.recv_int = sys_int
             sendNTP.tx_frac = sendNTP.ref_frac = sendNTP.recv_frac = sys_frac
 
-            print(">> Enviado a > {}".format(address))
+            print(">> EnvID {0} Enviado a {1}".format(id,address))
             sock.sendto(sendNTP.codificar(), address)
         else:
             continue
-    print("Terminando thread de envios")
+    print("Terminando thread de envios {}".format(id))
 
 # Create a datagram socket
 UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -74,10 +80,22 @@ UDPServerSocket.settimeout(5)
 UDPServerSocket.bind((localIP, localPort))
 print("Servidor UDP levantado y escuchando.\nIP: {0}\nPuerto: {1}".format(localIP,localPort))
 
-recepcion = threading.Thread(target=recepcion_th, args=(UDPServerSocket, box,))
-recepcion.start()
-envio = threading.Thread(target=envio_th, args=(UDPServerSocket, box,))
-envio.start()
+cerradura_recepcion = threading.Lock()
+cerradura_envios = threading.Lock()
+
+all_threads = list()
+threads_recepcion = 1
+threads_trabajo = 4
+
+for x in range(threads_recepcion):      
+    recepcion = threading.Thread(target=recepcion_th, args=(UDPServerSocket, cerradura_recepcion, box, x,))
+    recepcion.start()
+    all_threads.append(recepcion)
+
+for x in range(threads_trabajo):
+    envio = threading.Thread(target=envio_th, args=(UDPServerSocket, cerradura_envios, box, x,))
+    envio.start()
+    all_threads.append(envio)
 
 while(True):
     try:
@@ -86,8 +104,8 @@ while(True):
         print("Cerrando threads")
 
         finalizar_g = True
-        recepcion.join()
-        envio.join()
+        for t in all_threads:
+            t.join()
 
         UDPServerSocket.close()
         print("Adios :(")
