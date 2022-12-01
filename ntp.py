@@ -3,37 +3,33 @@ import datetime
 
 #Codigo basado en https://github.com/limifly/ntpserver
 
-SYSTEM_EPOCH = datetime.date(1970, 1, 1)
-"""system epoch"""
-NTP_EPOCH = datetime.date(1900, 1, 1)
-"""NTP epoch"""
-NTP_DELTA = (SYSTEM_EPOCH - NTP_EPOCH).days * 24 * 3600
-"""delta between system and NTP time"""
+SYSTEM_EPOCH = datetime.date(1970, 1, 1) #Tiempo 0 formato sistema
+NTP_EPOCH = datetime.date(1900, 1, 1)    #Tiempo 0 formato NTP
+NTP_DELTA = (SYSTEM_EPOCH - NTP_EPOCH).days * 24 * 3600 #Diferencia entre tiempo de sistema y tiempo NTP en segundos
 
+#Transforma el tiempo de sistema a tiempo en formato NTP
 def sysToNTP(timestamp):
-    """time corresponding NTP time from a timestamp in system time"""
-    return timestamp + NTP_DELTA
+    return timestamp + NTP_DELTA 
 
+#Devuelve la parte entera de un tiempo en formato NTP
 def toInt(timestamp):
-    """Return the integral part of an NTP timestamp"""
     return int(timestamp)
 
+#Devuelve la parte fraccionaria de n-bits del tiempo en formato NTP. n=32 por defecto.
 def toFrac(timestamp, n=32):
-    """Return a n-bits fractional part of an NTP timestamp. n is set by default to 32"""
     return int(abs(timestamp - toInt(timestamp)) * 2**n)
 
+#Une la parte fraccionaria de n-bits y la parte entera para devolver un tiempo en NTP
 def toTime(integ, frac, n=32):
-    """Return a timestamp from an integral and fractional part. fractional part is restricted to n-bits. 
-    n is set to 32 by default"""
     return integ + float(frac)/2**n	
 
+#Error levantado por el modulo
 class NTPException(Exception):
-    """Exception raised by this module."""
     pass
 
 class paqueteNTP:
+    #Formato del paquete al momento de codificar/decodificar
     _PACKET_FORMAT = "!B B B b 11I"
-    """packet format to pack/unpack"""
 
     def __init__(self, version=2, mode=3, tx_timestamp=0):
         self.leap = 0
@@ -46,22 +42,25 @@ class paqueteNTP:
         self.root_dispersion = 0
         self.ref_id = 0
 
+        #Tiempo de referencia
         self.ref_timestamp = 0
         self.ref_int = 0
         self.ref_frac = 0
-        """reference timestamp"""
+
+        #Tiempo de origen
         self.orig_timestamp = 0
         self.orig_int = 0
         self.orig_frac = 0
-        """originate timestamp"""
+
+        #Tiempo de recepcion
         self.recv_timestamp = 0
         self.recv_int = 0
         self.recv_frac = 0
-        """receive timestamp"""
+
+        #Tiempo de transmision
         self.tx_timestamp = tx_timestamp
         self.tx_int = toInt(tx_timestamp)
         self.tx_frac = toFrac(tx_timestamp)
-        """tansmit timestamp"""
 
     def codificar(self):
         try:
@@ -83,7 +82,7 @@ class paqueteNTP:
                 self.tx_frac  #14 Parte fraccionaria de transmision
                 )
         except struct.error:
-            raise NTPException("Invalid NTP packet fields.")
+            raise NTPException("Campos del paquete NTP invalidos.")
         return packed
 
     def decodificar(self, data):
@@ -91,7 +90,7 @@ class paqueteNTP:
             unpacked = struct.unpack(paqueteNTP._PACKET_FORMAT,
                     data[0:struct.calcsize(paqueteNTP._PACKET_FORMAT)])
         except struct.error:
-            raise NTPException("Invalid NTP packet.")
+            raise NTPException("Paquete NTP invalido.")
 
         self.leap = unpacked[0] >> 6 & 0x3
         self.version = unpacked[0] >> 3 & 0x7

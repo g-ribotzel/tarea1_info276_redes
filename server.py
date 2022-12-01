@@ -8,15 +8,9 @@ from ntp import *
 if(len(sys.argv) not in (1,3,5)):
     print('''Faltan o hay más argumentos de los aceptados
 Para Ejecutar utilice uno de los siguientes comandos:
-python3 {0} <IP> <PUERTO> <Numero de threads de recepcion> <Numero de threads de trabajo>
-python3 {0} <IP> <PUERTO>
-python3 {0}
-python {0} <IP> <PUERTO> <Numero de threads de recepcion> <Numero de threads de trabajo>
-python {0} <IP> <PUERTO>
-python {0}
-py {0} <IP> <PUERTO> <Numero de threads de recepcion> <Numero de threads de trabajo>
-py {0} <IP> <PUERTO>
-py {0}'''.format(sys.argv[0]))
+<Ejecutable de Python> {0} <IP> <PUERTO> <Numero de threads de recepcion> <Numero de threads de trabajo>
+<Ejecutable de Python> {0} <IP> <PUERTO>
+<Ejecutable de Python> {0}'''.format(sys.argv[0]))
     sys.exit(2)
 
 finalizar_g = False
@@ -82,7 +76,6 @@ def trabajo_th(sock, lock, caja, id):
                 sys_int = toInt(sys_NTP)
                 sys_frac = toFrac(sys_NTP)
 
-                #sendNTP.tx_timestamp = sendNTP.ref_timestamp = sendNTP.recv_timestamp = sys_NTP
                 sendNTP.tx_int = sendNTP.ref_int = sendNTP.recv_int = sys_int
                 sendNTP.tx_frac = sendNTP.ref_frac = sendNTP.recv_frac = sys_frac
 
@@ -95,11 +88,11 @@ def trabajo_th(sock, lock, caja, id):
             continue
     print("Terminando thread de envios {}".format(id))
 
-# Create a datagram socket
+#Creacion del socket UDP + establecimiento de temporizador
 UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 UDPServerSocket.settimeout(5)
 
-# Bind to address and ip
+#Establecimiento del socket en el puerto y direccion correspondientes
 UDPServerSocket.bind((localIP, localPort))
 print("Servidor UDP levantado y escuchando.\nIP: {0}\nPuerto: {1}".format(localIP,localPort))
 
